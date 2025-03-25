@@ -35,6 +35,15 @@ export interface GlobalDragHandleOptions {
    * Custom nodes to be included for drag handle
    */
   customNodes: string[];
+
+  /**
+   * Callback function triggered on mouse move providing the current node in editor and its position.
+   *
+   * @param data - An object containing details about the node.
+   * @param data.node - The node that was interacted with.
+   * @param data.pos - The position/index of the node in the relevant structure.
+   */
+  onMouseMove?: (data: { node: Node; pos: number }) => void;
 }
 function absoluteRect(node: Element) {
   const data = node.getBoundingClientRect();
@@ -306,6 +315,19 @@ export function DragHandlePlugin(
             return;
           }
 
+          // Determine the position of the currently hovered node within the editor.
+          const nodePos = nodePosAtDOM(node, view, options);
+
+          if (nodePos !== undefined) {
+            // Retrieve the corresponding node from the editor's document state.
+            const currentNode = view.state.doc.nodeAt(nodePos);
+
+            if (currentNode !== null) {
+              // Invoke the callback function to notify about the node change.
+              options.onMouseMove?.({ node: currentNode, pos: nodePos });
+            }
+          }
+
           const compStyle = window.getComputedStyle(node);
           const parsedLineHeight = parseInt(compStyle.lineHeight, 10);
           const lineHeight = isNaN(parsedLineHeight)
@@ -404,6 +426,7 @@ const GlobalDragHandle = Extension.create({
         dragHandleSelector: this.options.dragHandleSelector,
         excludedTags: this.options.excludedTags,
         customNodes: this.options.customNodes,
+        onMouseMove: this.options.onMouseMove,
       }),
     ];
   },
